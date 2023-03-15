@@ -10,4 +10,5 @@ pytz==2022.7
 requests
 spotipy>=2.22
 youtube_dl>=2021
+disnake[voice]
 git+https://github.com/Snipy7374/disnake-ext-paginator.git
