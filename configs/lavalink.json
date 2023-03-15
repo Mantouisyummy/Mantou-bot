@@ -1,0 +1,20 @@
+{
+    "nodes": [
+        {
+            "host": "ssl.freelavalink.ga",
+            "port": 443,
+            "password": "www.freelavalink.ga",
+            "name": "main",
+            "region": "us",
+            "ssl": true
+        },
+        {
+            "host": "node1.kartadharta.xyz",
+            "port": 443,
+            "password": "kdlavalink",
+            "name": "main1",
+            "region": "us",
+            "ssl": true
+        }
+    ]
+}
