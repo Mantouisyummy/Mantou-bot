@@ -86,7 +86,7 @@ class Rpg(commands.Cog):
                         json.dump(data, f,cls=DateEncoder)
                 now = datetime.datetime.now().isoformat()
                 cooldown_time_str = data["cooldowns"]
-                cooldown_time = datetime.datetime.strptime(cooldown_time_str, '%Y-%m-%d %H:%M:%S.%f')
+                cooldown_time = datetime.datetime.strptime(cooldown_time_str, '%Y-%m-%d %H:%M:%S')
                 if now < cooldown_time:
                     remaining_time = cooldown_time - now
                     embed = Embed(title=":x: | 你需要休息!",description=f"你還需要等待 `{remaining_time.seconds}秒` 才能再次挖礦!")

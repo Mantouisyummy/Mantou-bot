@@ -73,7 +73,7 @@ class Info(commands.Cog):
                             love = data["marry_user"]
                             try:
                                 love_timestamp = time.mktime(datetime.datetime.strptime(data["marry_time"],"%Y/%m/%d %H:%M:%S").timetuple())
-                                embed.add_field(name=":heart: 感情狀態",value=f"已和 <@{love}> 結婚!\n結婚時間<t:{int(love_timestamp)}>",inline=False)
+                                embed.add_field(name=":heart: 感情狀態",value=f"已和 <@{love}> 結婚!\n結婚時間<t:{int(love_timestamp)}> (<t:{int(love_timestamp)}:R>)",inline=False)
                             except KeyError:
                                 embed.add_field(name=":heart: 感情狀態",value=f"已和 <@{love}> 結婚!",inline=False)
                         embed.set_thumbnail(url=target.avatar.url)
@@ -108,7 +108,7 @@ class Info(commands.Cog):
                             love = data["marry_user"]
                             try:
                                 love_timestamp = time.mktime(datetime.datetime.strptime(data["marry_time"],"%Y/%m/%d %H:%M:%S").timetuple())
-                                embed.add_field(name=":heart: 感情狀態",value=f"已和 <@{love}> 結婚!\n結婚時間<t:{int(love_timestamp)}>",inline=False)
+                                embed.add_field(name=":heart: 感情狀態",value=f"已和 <@{love}> 結婚!\n結婚時間<t:{int(love_timestamp)}> (<t:{int(love_timestamp)}:R>)",inline=False)
                             except KeyError:
                                 embed.add_field(name=":heart: 感情狀態",value=f"已和 <@{love}> 結婚!",inline=False)
                         embed.set_thumbnail(url=target.avatar.url)
@@ -144,7 +144,11 @@ class Info(commands.Cog):
                             embed.add_field(name=":heart: 感情狀態",value=f"單身",inline=False)
                         else:
                             love = data["marry_user"]
-                            embed.add_field(name=":heart: 感情狀態",value=f"已和 <@{love}> 結婚!",inline=False)
+                            try:
+                                love_timestamp = time.mktime(datetime.datetime.strptime(data["marry_time"],"%Y/%m/%d %H:%M:%S").timetuple())
+                                embed.add_field(name=":heart: 感情狀態",value=f"已和 <@{love}> 結婚!\n結婚時間<t:{int(love_timestamp)}> (<t:{int(love_timestamp)}:R>)",inline=False)
+                            except KeyError:
+                                embed.add_field(name=":heart: 感情狀態",value=f"已和 <@{love}> 結婚!",inline=False)
                         embed.set_thumbnail(url=target.avatar.url)
                         await interaction.response.send_message(embed=embed)
                     except KeyError:
@@ -177,7 +181,7 @@ class Info(commands.Cog):
                             love = data["marry_user"]
                             try:
                                 love_timestamp = time.mktime(datetime.datetime.strptime(data["marry_time"],"%Y/%m/%d %H:%M:%S").timetuple())
-                                embed.add_field(name=":heart: 感情狀態",value=f"已和 <@{love}> 結婚!\n結婚時間<t:{int(love_timestamp)}>",inline=False)
+                                embed.add_field(name=":heart: 感情狀態",value=f"已和 <@{love}> 結婚!\n結婚時間<t:{int(love_timestamp)}> (<t:{int(love_timestamp)}:R>)",inline=False)
                             except KeyError:
                                 embed.add_field(name=":heart: 感情狀態",value=f"已和 <@{love}> 結婚!",inline=False)
                         embed.set_thumbnail(url=target.avatar.url)
