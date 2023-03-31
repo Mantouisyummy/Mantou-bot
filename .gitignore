@@ -1,0 +1,8 @@
+
+.cache
+*.txt
+.json
+.env
+.code-workspace
+.yml
+.jar
