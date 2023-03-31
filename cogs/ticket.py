@@ -97,13 +97,20 @@ class TicketView(disnake.ui.View): #客
 
     @disnake.ui.button(label="刪除客服單",style=disnake.ButtonStyle.red,custom_id="del_ticket")
     async def delete_ticket(self, button: disnake.ui.Button, interaction: ApplicationCommandInteraction):
-        if interaction.guild.get_member(interaction.user.id).guild_permissions.manage_channels == True:
-                ticket_channel = disnake.utils.get(interaction.guild.text_channels,id=self.channel.id)
-                loading_embed = disnake.Embed(title="<a:Loading:1059806500241027157> | 正在刪除...",colour=disnake.Colour.light_grey())
-                await interaction.response.send_message(embed=loading_embed)
-                await ticket_channel.delete()
-        else:
-            await interaction.response.send_message("你無法刪除客服單! 請聯繫管理人員以刪除此客服單",ephemeral=True)
+        try:
+            if interaction.guild.get_member(interaction.user.id).guild_permissions.manage_channels == True:
+                    self.channel = interaction.channel
+                    ticket_channel = disnake.utils.get(interaction.guild.text_channels,id=self.channel.id)
+                    loading_embed = disnake.Embed(title="<a:Loading:1059806500241027157> | 正在刪除...",colour=disnake.Colour.light_grey())
+                    await interaction.response.send_message(embed=loading_embed)
+                    await ticket_channel.delete()
+            else:
+                await interaction.response.send_message("你無法刪除客服單! 請聯繫管理人員以刪除此客服單",ephemeral=True)
+        except AttributeError:
+            ticket_channel = disnake.utils.get(interaction.guild.text_channels,id=self.channel.id)
+            loading_embed = disnake.Embed(title="<a:Loading:1059806500241027157> | 正在刪除...",colour=disnake.Colour.light_grey())
+            await interaction.response.send_message(embed=loading_embed)
+            await ticket_channel.delete()
 
 
 class ticket(commands.Cog):

@@ -3,18 +3,17 @@ from typing import Union
 import lavalink
 import asyncio
 from disnake import TextChannel, Thread, InteractionResponded, ApplicationCommandInteraction, \
-    MessageInteraction,Member
+    MessageInteraction
 from disnake.abc import GuildChannel
 from disnake.ext import commands
-from disnake.utils import get
 from disnake.ext.commands import Cog, CommandInvokeError
+from disnake.utils import get
 from lavalink import TrackLoadFailedEvent, DefaultPlayer, PlayerUpdateEvent, TrackEndEvent, QueueEndEvent
 
 from core.classes import Bot
 from core.embeds import ErrorEmbed,InfoEmbed
 from library.errors import MissingVoicePermissions, BotNotInVoice, UserNotInVoice, UserInDifferentChannel
-from library.functions import update_display, ensure_voice, toggle_autoplay, get_recommended_tracks
-from library.variables import Variables
+from library.functions import update_display, ensure_voice, toggle_autoplay, get_recommended_track
 
 
 class Events(Cog):
@@ -25,21 +24,15 @@ class Events(Cog):
         await self.bot.wait_until_ready()
 
         lavalink.add_event_hook(self.track_hook)
-    
-    async def sleep(self):
-        await asyncio.sleep(120)
-    
+
     async def track_hook(self, event):
         if isinstance(event, PlayerUpdateEvent):
             player: DefaultPlayer = event.player
 
-            if event.player.fetch("autoplay") and len(event.player.queue) <= 10:
-                recommendations = await get_recommended_tracks(
-                    Variables.SPOTIFY_CLIENT, event.player, ([event.player.current] + event.player.queue)[-10:], 20
-                )
+            if event.player.fetch("autoplay") and len(event.player.queue) == 0:
+                recommendation = await get_recommended_track(player, player.current)
 
-                for track in recommendations:
-                    event.player.add(requester=0, track=track)
+                event.player.add(requester=0, track=recommendation)
 
             try:
                 await update_display(self.bot, player)
@@ -99,7 +92,7 @@ class Events(Cog):
             await interaction.edit_original_response(embed=embed)
 
     @commands.Cog.listener(name="on_voice_state_update")
-    async def on_voice_state_update(self, member:Member, before, after):
+    async def on_voice_state_update(self, member, before, after):
         if (
                 before.channel is not None
                 and after.channel is None
@@ -114,59 +107,44 @@ class Events(Cog):
                 await update_display(self.bot, player)
             except ValueError:  # There's no message to update
                 pass
-        
+
+        voice_client = get(self.bot.voice_clients, guild=member.guild)
         try:
-            voice_client = get(self.bot.voice_clients, guild=member.guild)
             voice_channel = get(member.guild.voice_channels,id=voice_client.channel.id)
-            print(voice_client.channel.id)
-            if after.channel is not None:
-                # 獲取語音頻道中的成員列表
-                members = after.channel.members
-                # 如果語音頻道中只有一個成員，並且是機器人本身
-                if len(members) == 1 and members[0] == self.bot.user:
-                    # 創建一個異步任務來執行check_and_disconnect函數，並將其保存到bot的屬性中
-                    task = asyncio.create_task(self.check_and_disconnect(after.channel))
-                # 如果語音頻道中有多於一個成員，並且bot有一個正在執行的任務
-                elif len(members) > 1 and hasattr(task, "task") and not task.done():
-                    # 取消該任務
-                    task.cancel()
-                        
-                task = asyncio.create_task(disconnect())
-                try:
-                    await asyncio.wait_for(task, timeout=120)
-                except asyncio.TimeoutError:
-                    task.cancel()
-        except (UnboundLocalError,AttributeError):
+        except AttributeError:
+            await asyncio.sleep(1)
+            voice_channel = get(member.guild.voice_channels,id=voice_client.channel.id)
             pass
-    async def check_and_disconnect(self, channel):
-        try:
-            # 等待2分鐘
-            await asyncio.sleep(120)
-            # 如果語音頻道中仍然只有一個成員，並且是機器人本身
-            if len(channel.members) == 1 and channel.members[0] == self.bot.user:
-                # 斷開語音連接
-                player: DefaultPlayer = self.bot.lavalink.player_manager.get(member.guild.id)
+        if (
+                before.channel is not None
+                and after.channel is None
+                and member.id != self.bot.user.id
+                and len(voice_channel.members) == 1
+        ):
+            timer = 0
+            while timer < 120:
+                if len(voice_channel.members) > 1:
+                    return  # Cancel the process
 
-                channel: Union[GuildChannel, TextChannel, Thread] = self.bot.get_channel(int(player.fetch("channel")))
+                await asyncio.sleep(1)
+                timer += 1
 
-                guild = self.bot.get_guild(1003837176464810115)
-                emoji = get(guild.emojis, id=1078318173616611378)
+            player: DefaultPlayer = self.bot.lavalink.player_manager.get(member.guild.id)
 
-                message = await channel.send(
-                    embed=InfoEmbed(f"超過兩分鐘已沒人聽歌 我先跑路啦 {emoji}"),
+            await player.stop()
+            player.queue.clear()
+
+            channel: Union[GuildChannel, TextChannel, Thread] = self.bot.get_channel(int(player.fetch("channel")))
+            message = await channel.send(
+                    embed=InfoEmbed("超過兩分鐘已沒人聽歌 我先跑路啦 👋"),
                 )
-
-                await voice_client.disconnect()
-
-                try: 
-                    await update_display(self.bot, player, message,delay=10)
-                except ValueError: # There's no message to update
-                    pass
-                await player.stop()  
-                player.queue.clear()
-        except asyncio.CancelledError:
-            # 如果任務被取消，則不執行任何操作
-            pass
+            await voice_client.disconnect()
+            try: 
+                await update_display(self.bot, player, message,delay=3)
+            except ValueError: # There's no message to update
+                pass
+            
+            
 
     @commands.Cog.listener(name="on_message_interaction")
     async def on_message_interaction(self, interaction: MessageInteraction):

@@ -2,11 +2,15 @@ import disnake
 import json
 import datetime
 import random
+import time
+import pytz
 
 from disnake.ext import commands
-from disnake import ApplicationCommandInteraction, Option, OptionType, MessageInteraction, Member, Embed,Colour, OptionChoice
+from disnake import ApplicationCommandInteraction, Option, OptionType, MessageInteraction, Member, Embed,Colour, OptionChoice,User
 from typing import Optional
+from datetime import timedelta,timezone
 from .core.functions import initialization,add_money,remove_money,update_bag,translate,now_work
+from dateutil.parser import parse # 引入dateutil套件
 
 class DateEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -71,114 +75,113 @@ class Rpg(commands.Cog):
 
 
     @rpg.sub_command(name="work",description="工個作吧")
+    @commands.cooldown(1,30,commands.BucketType.user)
     async def work(self, interaction: ApplicationCommandInteraction):
         try:
             with open(f"./database/users/{interaction.author.id}.json","r",encoding="utf-8'") as f:
                 data = json.load(f)
-                item_list = ["鑽石礦","黃金礦","鐵礦","煤炭","石頭"]
-                random_ore = random.choices(item_list,weights=[10,15,25,25,35])
-                if "cooldowns" not in data:
-                    print("hay")
-                    now = datetime.datetime.now().isoformat()
-                    time = datetime.datetime.fromisoformat(now)
-                    data["cooldowns"] = time
-                    with open(f"./database/users/{interaction.author.id}.json","w",encoding="utf-8'") as f:
-                        json.dump(data, f,cls=DateEncoder)
-                now = datetime.datetime.now().isoformat()
-                cooldown_time_str = data["cooldowns"]
-                cooldown_time = datetime.datetime.strptime(cooldown_time_str, '%Y-%m-%d %H:%M:%S')
-                if now < cooldown_time:
-                    remaining_time = cooldown_time - now
-                    embed = Embed(title=":x: | 你需要休息!",description=f"你還需要等待 `{remaining_time.seconds}秒` 才能再次挖礦!")
+            item_list = ["鑽石礦","黃金礦","鐵礦","煤炭","石頭"]
+            random_ore = random.choices(item_list,weights=[10,15,25,25,35])
+            match random_ore:
+                case ["鑽石礦"]:
+                    await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
+                    times = data["times"]
+                    embed = Embed(title="⛏️ | 又是挖礦的一天! 是鑽石嗎Σ(°Д°;",description=f"你挖到了一個鑽石礦! 你目前工作了`{times}`次!",colour=Colour.blue())
                     embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
                     await interaction.response.send_message(embed=embed)
-                else:
-                    cooldown_time = now + datetime.timedelta(seconds=30)
-                    data["cooldowns"] = cooldown_time
-                    f.seek(0)
-                    json.dump(data, f)
-                    match random_ore:
-                        case ["鑽石礦"]:
-                            await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
-                            times = data["times"]
-                            embed = Embed(title="⛏️ | 又是挖礦的一天! 是鑽石嗎Σ(°Д°;",description=f"你挖到了一個鑽石礦! 你目前工作了`{times}`次!",colour=Colour.blue())
-                            embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
-                            await interaction.response.send_message(embed=embed)
-                            await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="diamond_ore",limit=1,choice="upload")
-                        case ["黃金礦"]:
-                            await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
-                            times = data["times"]
-                            embed = Embed(title="⛏️ | 又是挖礦的一天! 是黃金ㄟ(ﾉ>ω<)ﾉ",description=f"你挖到了一個黃金礦! 你目前工作了`{times}`次!",colour=Colour.gold())
-                            embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
-                            await interaction.response.send_message(embed=embed)
-                            await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="gold_ore",limit=1,choice="upload")
-                        case ["鐵礦"]:
-                            await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
-                            times = data["times"]
-                            embed = Embed(title="⛏️ | 又是挖礦的一天! 是鐵ヽ(●´∀`●)ﾉ",description=f"你挖到了一個鐵礦! 你目前工作了`{times}`次!",colour=Colour.from_rgb(r=181,g=154,b=136))
-                            embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
-                            await interaction.response.send_message(embed=embed)
-                            await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="iron_ore",limit=1,choice="upload")
-                        case ["煤炭"]:
-                            await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
-                            times = data["times"]
-                            embed = Embed(title="⛏️ | 又是挖礦的一天! 好耶煤炭 (｡A｡) (?",description=f"你挖到了一個煤炭! 你目前工作了`{times}`次!")
-                            embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
-                            await interaction.response.send_message(embed=embed)
-                            await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="coal",limit=1,choice="upload")
-                        case ["石頭"]:
-                            await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
-                            times = data["times"]
-                            embed = Embed(title="⛏️ | 又是挖礦的一天! 石頭...(´ー`)",description=f"你挖到了一顆石頭! 你目前工作了`{times}`次!",colour=Colour.light_gray())
-                            embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
-                            await interaction.response.send_message(embed=embed)
-                            await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="stone",limit=1,choice="upload")
+                    await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="diamond_ore",limit=1,choice="upload")
+                case ["黃金礦"]:
+                    await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
+                    times = data["times"]
+                    embed = Embed(title="⛏️ | 又是挖礦的一天! 是黃金ㄟ(ﾉ>ω<)ﾉ",description=f"你挖到了一個黃金礦! 你目前工作了`{times}`次!",colour=Colour.gold())
+                    embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
+                    await interaction.response.send_message(embed=embed)
+                    await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="gold_ore",limit=1,choice="upload")
+                case ["鐵礦"]:
+                    await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
+                    times = data["times"]
+                    embed = Embed(title="⛏️ | 又是挖礦的一天! 是鐵ヽ(●´∀`●)ﾉ",description=f"你挖到了一個鐵礦! 你目前工作了`{times}`次!",colour=Colour.from_rgb(r=181,g=154,b=136))
+                    embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
+                    await interaction.response.send_message(embed=embed)
+                    await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="iron_ore",limit=1,choice="upload")
+                case ["煤炭"]:
+                    await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
+                    times = data["times"]
+                    embed = Embed(title="⛏️ | 又是挖礦的一天! 好耶煤炭 (｡A｡) (?",description=f"你挖到了一個煤炭! 你目前工作了`{times}`次!")
+                    embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
+                    await interaction.response.send_message(embed=embed)
+                    await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="coal",limit=1,choice="upload")
+                case ["石頭"]:
+                    await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
+                    times = data["times"]
+                    embed = Embed(title="⛏️ | 又是挖礦的一天! 石頭...(´ー`)",description=f"你挖到了一顆石頭! 你目前工作了`{times}`次!",colour=Colour.light_gray())
+                    embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
+                    await interaction.response.send_message(embed=embed)
+                    await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="stone",limit=1,choice="upload")
         except (KeyError,json.decoder.JSONDecodeError,FileNotFoundError):
             print("hayhay")
             await initialization(bot=self.bot, interaction=interaction,id=interaction.author.id,object="nokey")
             print("lol4")
-            item_list = ["鑽石礦","黃金礦","鐵礦","煤炭","石頭"]
-            random_ore = random.choices(item_list,weights=[3,5,30,30,35])
             with open(f"./database/users/{interaction.author.id}.json","r",encoding="utf-8'") as f:
                 data = json.load(f)
-            print(data)
+            item_list = ["鑽石礦","黃金礦","鐵礦","煤炭","石頭"]
+            random_ore = random.choices(item_list,weights=[10,15,25,25,35])
             match random_ore:
-                        case ["鑽石礦"]:
-                            await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
-                            times = data["times"]
-                            embed = Embed(title="⛏️ | 又是挖礦的一天! 是鑽石嗎Σ(°Д°;",description=f"你挖到了一個鑽石礦! 你目前工作了`{times}`次!",colour=Colour.blue())
-                            embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
-                            await interaction.response.send_message(embed=embed)
-                            await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="diamond_ore",limit=1,choice="upload")
-                        case ["黃金礦"]:
-                            await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
-                            times = data["times"]
-                            embed = Embed(title="⛏️ | 又是挖礦的一天! 是黃金ㄟ(ﾉ>ω<)ﾉ",description=f"你挖到了一個黃金礦! 你目前工作了`{times}`次!",colour=Colour.gold())
-                            embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
-                            await interaction.response.send_message(embed=embed)
-                            await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="gold_ore",limit=1,choice="upload")
-                        case ["鐵礦"]:
-                            await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
-                            times = data["times"]
-                            embed = Embed(title="⛏️ | 又是挖礦的一天! 是鐵ヽ(●´∀`●)ﾉ",description=f"你挖到了一個鐵礦! 你目前工作了`{times}`次!",colour=Colour.from_rgb(r=181,g=154,b=136))
-                            embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
-                            await interaction.response.send_message(embed=embed)
-                            await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="iron_ore",limit=1,choice="upload")
-                        case ["煤炭"]:
-                            await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
-                            times = data["times"]
-                            embed = Embed(title="⛏️ | 又是挖礦的一天! 好耶煤炭 (｡A｡) (?",description=f"你挖到了一個煤炭! 你目前工作了`{times}`次!")
-                            embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
-                            await interaction.response.send_message(embed=embed)
-                            await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="coal",limit=1,choice="upload")
-                        case ["石頭"]:
-                            await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
-                            times = data["times"]
-                            embed = Embed(title="⛏️ | 又是挖礦的一天! 石頭...(´ー`)",description=f"你挖到了一顆石頭! 你目前工作了`{times}`次!",colour=Colour.light_gray())
-                            embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
-                            await interaction.response.send_message(embed=embed)
-                            await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="stone",limit=1,choice="upload")
+                case ["鑽石礦"]:
+                    await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
+                    times = data["times"]
+                    embed = Embed(title="⛏️ | 又是挖礦的一天! 是鑽石嗎Σ(°Д°;",description=f"你挖到了一個鑽石礦! 你目前工作了`{times}`次!",colour=Colour.blue())
+                    embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
+                    await interaction.response.send_message(embed=embed)
+                    await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="diamond_ore",limit=1,choice="upload")
+                case ["黃金礦"]:
+                    await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
+                    times = data["times"]
+                    embed = Embed(title="⛏️ | 又是挖礦的一天! 是黃金ㄟ(ﾉ>ω<)ﾉ",description=f"你挖到了一個黃金礦! 你目前工作了`{times}`次!",colour=Colour.gold())
+                    embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
+                    await interaction.response.send_message(embed=embed)
+                    await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="gold_ore",limit=1,choice="upload")
+                case ["鐵礦"]:
+                    await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
+                    times = data["times"]
+                    embed = Embed(title="⛏️ | 又是挖礦的一天! 是鐵ヽ(●´∀`●)ﾉ",description=f"你挖到了一個鐵礦! 你目前工作了`{times}`次!",colour=Colour.from_rgb(r=181,g=154,b=136))
+                    embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
+                    await interaction.response.send_message(embed=embed)
+                    await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="iron_ore",limit=1,choice="upload")
+                case ["煤炭"]:
+                    await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
+                    times = data["times"]
+                    embed = Embed(title="⛏️ | 又是挖礦的一天! 好耶煤炭 (｡A｡) (?",description=f"你挖到了一個煤炭! 你目前工作了`{times}`次!")
+                    embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
+                    await interaction.response.send_message(embed=embed)
+                    await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="coal",limit=1,choice="upload")
+                case ["石頭"]:
+                    await now_work(bot=self.bot, interaction=interaction,id=interaction.author.id)
+                    times = data["times"]
+                    embed = Embed(title="⛏️ | 又是挖礦的一天! 石頭...(´ー`)",description=f"你挖到了一顆石頭! 你目前工作了`{times}`次!",colour=Colour.light_gray())
+                    embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
+                    await interaction.response.send_message(embed=embed)
+                    await update_bag(bot=self.bot, interaction=interaction,id=interaction.author.id,category="礦物",item="stone",limit=1,choice="upload")
             
+    @commands.Cog.listener()
+    async def on_slash_command_error(self, interaction:ApplicationCommandInteraction, error):
+        if isinstance(error, commands.CommandOnCooldown):
+            with open(f"./database/users/{interaction.author.id}.json","r",encoding="utf-8'") as f:
+                data = json.load(f)
+            now = time.time() # 獲取當前時間戳
+            end = now + error.retry_after # 計算冷卻結束時間戳
+            taipei_tz = datetime.timezone(datetime.timedelta(hours=8)) # 創建台北時區物件，偏移量為8小時
+            end_taipei = datetime.datetime.fromtimestamp(end, taipei_tz) # 將冷卻結束時間戳轉換成台北時區的datetime物件
+            end_str = end_taipei.isoformat() # 將冷卻結束時間轉換成ISO格式的字串
+            end_datetime = parse(end_str)
+            end_custom = end_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            count = data["times"]
+            timestamp = end_datetime.timestamp()
+            print(timestamp)
+            embed = Embed(title=":x: | 你需要休息!",description=f"你目前工作了 `{count}` 次! <t:{int(timestamp)}:R> 才能再次挖礦!",colour=Colour.red())
+            embed.set_footer(text="機器人作者by 鰻頭", icon_url=self.bot.user.avatar.url)
+            await interaction.response.send_message(embed=embed)
+
 
     Items = commands.option_enum({"鑽石礦":"diamond_ore","黃金礦":"gold_ore","鐵礦":"iron_ore","煤炭":"coal","石頭":"stone"})
     @rpg.sub_command(name="sell",description="賣出物品")
@@ -204,21 +207,27 @@ class Rpg(commands.Cog):
         except KeyError:
             pass
 
-    @commands.slash_command(name="add_money",description="增加你的錢錢",guild_ids=[1053616489128808499])
+    @commands.slash_command(name="add_money",description="增加你的錢錢")
     async def add__money(self, 
                         interaction: ApplicationCommandInteraction,
-                        member:Optional[Member] = Option(name="member",
-                        type=OptionType.user,description="用戶"),
+                        member:Optional[User] = Option(name="member",description="用戶"),
                         add_to_money:int = Option(name="要加的錢",type=OptionType.integer,description="數量")):
-        await add_money(bot=self.bot, interaction=interaction,id=member.id,money=add_to_money)
+        if interaction.user.id == 549056425943629825:
+            await add_money(bot=self.bot, interaction=interaction,id=member.id,money=add_to_money)
+        else:
+            embed = disnake.Embed(title=":x: | 這個指令太過邪惡了,只有饅頭能夠駕馭他 (?",colour=Colour.red())
+            await interaction.response.send_message(embed=embed)
 
-    @commands.slash_command(name="remove_money",description="減少你的錢錢",guild_ids=[1053616489128808499])
+    @commands.slash_command(name="remove_money",description="減少你的錢錢")
     async def remove__money(self, 
                         interaction: ApplicationCommandInteraction,
-                        member:Optional[Member] = Option(name="member",
-                        type=OptionType.user,description="用戶"),
+                        member:Optional[User] = Option(name="member",description="用戶"),
                         remove_to_money:int = Option(name="要減的錢",type=OptionType.integer,description="數量")):
-        await remove_money(bot=self.bot, interaction=interaction,id=member.id, money=remove_to_money)
+        if interaction.user.id == 549056425943629825:
+            await remove_money(bot=self.bot, interaction=interaction,id=member.id, money=remove_to_money)
+        else:
+            embed = disnake.Embed(title=":x: | 這個指令太過邪惡了,只有饅頭能夠駕馭他 (?",colour=Colour.red())
+            await interaction.response.send_message(embed=embed)
 
 def setup(bot):
     bot.add_cog(Rpg(bot))

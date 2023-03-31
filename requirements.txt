@@ -11,4 +11,6 @@ requests
 spotipy>=2.22
 youtube_dl>=2021
 disnake[voice]
+youtube-related
+youtube-search
 git+https://github.com/Snipy7374/disnake-ext-paginator.git
